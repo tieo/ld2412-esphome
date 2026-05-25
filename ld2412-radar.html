@@ -155,9 +155,9 @@ select.ctrl-sel.pending { border-color: #c88000; color: #c88000; }
       <div>
         <div class="gctrl-lbl">Timeout (s)<span class="gctrl-val" id="v-timeout">—</span></div>
         <div class="gctrl-row">
-          <input type="range" class="neutral" min="1" max="120" step="1" id="c-timeout"
-            oninput="liveVal('v-timeout',this.value+'s')"
-            onchange="setNum('Presence Timeout',this.value,'v-timeout','v-timeout')">
+          <input type="range" class="neutral" min="0" max="1000" step="1" id="c-timeout"
+            oninput="liveVal('v-timeout',timeoutFromSlider(+this.value)+'s')"
+            onchange="setNum('Presence Timeout',timeoutFromSlider(+this.value),'v-timeout','v-timeout')">
         </div>
       </div>
       <div>
@@ -510,9 +510,8 @@ function handle(d) {
     }
   }
 
-  // Global controls - also update slider constraints from sensor-reported min/max
+  // Global controls - update slider constraints from sensor-reported min/max (skip timeout — uses log scale with fixed internal range)
   const sliderConstraints = {
-    'presence_timeout': 'c-timeout', 'timeout': 'c-timeout',
     'min_distance_gate': 'c-mingate', 'max_distance_gate': 'c-maxgate',
     'light_threshold': 'c-lightthresh'
   };
@@ -524,7 +523,7 @@ function handle(d) {
     }
   }
   if (id.includes('presence_timeout') || (id.includes('timeout') && !id.includes('reboot')))
-    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); confirmPending('v-timeout'); }
+    { setSlider('c-timeout', timeoutToSlider(num)); setVal('v-timeout', num + 's'); confirmPending('v-timeout'); }
   if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); confirmPending('v-mingate'); updateGateLabels(); draw(); }
   if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); confirmPending('v-maxgate'); updateGateLabels(); draw(); }
   if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); confirmPending('v-lightthresh'); }
@@ -592,6 +591,10 @@ async function setSel(id, val, rowId) {
   }).then(r => r.ok).catch(() => false);
   if (!ok) { if (el) el.classList.remove('pending'); if (rowId) flashErr(rowId); }
 }
+
+const TIMEOUT_MIN = 1, TIMEOUT_MAX = 120, TIMEOUT_STEPS = 1000;
+function timeoutFromSlider(pos) { return Math.max(1, Math.round(Math.exp(Math.log(TIMEOUT_MIN) + pos / TIMEOUT_STEPS * Math.log(TIMEOUT_MAX / TIMEOUT_MIN)))); }
+function timeoutToSlider(val)   { return Math.round((Math.log(Math.max(val, TIMEOUT_MIN)) - Math.log(TIMEOUT_MIN)) / Math.log(TIMEOUT_MAX / TIMEOUT_MIN) * TIMEOUT_STEPS); }
 
 async function postSwitch(id, action) {
   await fetch(`http://${ip()}/switch/${encodeURIComponent(id)}/${action}`, { method: 'POST' }).catch(() => {});
