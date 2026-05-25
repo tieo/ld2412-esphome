@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LD2412</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #080808; color: #c0c0c0; }
+.app { height: 100vh; display: flex; flex-direction: column; padding: 0.875rem 1rem; gap: 0.875rem; overflow: hidden; }
+
+/* Header */
+.header { display: flex; align-items: center; gap: 8px; padding-bottom: 0.875rem; border-bottom: 1px solid #181818; flex-wrap: wrap; flex-shrink: 0; }
+.header-title { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #444; flex: 1; }
+input.ip { background: #111; border: 1px solid #252525; color: #ccc; padding: 5px 10px; border-radius: 6px; font-size: 12px; width: 148px; font-family: monospace; outline: none; }
+input.ip:focus { border-color: #3878cc; }
+.btn { background: #111; border: 1px solid #2a2a2a; color: #aaa; padding: 5px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.btn:hover { background: #161616; color: #ccc; }
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; background: #252525; flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s; }
+.conn-dot.on { background: #1D9E75; box-shadow: 0 0 8px #1D9E7588; }
+.conn-label { font-size: 11px; color: #444; }
+.conn-label.on { color: #1D9E75; }
+.age-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-variant-numeric: tabular-nums; display: none; }
+.age-badge.live  { display: inline; background: rgba(29,158,117,0.12); color: #1D9E75; }
+.age-badge.ok    { display: inline; background: #141414; color: #555; }
+.age-badge.stale { display: inline; background: rgba(200,140,0,0.12); color: #c88800; }
+.age-badge.dead  { display: inline; background: rgba(200,50,50,0.12); color: #c03030; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.conn-dot.live { animation: pulse-dot 1.5s ease-in-out infinite; }
+.stat-val.stale { opacity: 0.25; transition: opacity 1s; }
+
+/* Stats bar */
+.stats { display: flex; background: #0c0c0c; border: 1px solid #181818; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+.stat { flex: 1; padding: 8px 6px; text-align: center; border-right: 1px solid #141414; }
+.stat:last-child { border-right: none; }
+.stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #3a3a3a; margin-bottom: 3px; }
+.stat-val { font-size: 16px; font-weight: 500; color: #2a2a2a; font-variant-numeric: tabular-nums; line-height: 1; }
+.stat-val.on { color: #1D9E75; }
+.stat-val.live { color: #888; }
+
+/* Two-column layout */
+.layout { flex: 1; display: grid; grid-template-columns: 1fr 380px; gap: 1rem; min-height: 0; overflow: hidden; }
+.radar-col { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+canvas { display: block; flex: 1; min-height: 0; }
+.controls-col { overflow-y: auto; min-height: 0; padding-right: 2px; }
+
+/* Legend */
+.legend { display: flex; gap: 1rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #333; }
+.lsw { width: 14px; height: 3px; border-radius: 2px; }
+.lsw-dash { width: 14px; height: 0; border-top: 2px dashed; }
+
+/* Panels */
+.panel { background: #0c0c0c; border: 1px solid #181818; border-radius: 10px; margin-bottom: 0.875rem; overflow: hidden; }
+.panel-head { display: flex; align-items: center; padding: 9px 14px; cursor: pointer; user-select: none; border-bottom: 1px solid #141414; }
+.panel-head:hover { background: #0f0f0f; }
+.panel-ttl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #444; flex: 1; }
+.panel-arrow { font-size: 10px; color: #2a2a2a; transition: transform 0.15s; }
+.panel.shut .panel-body { display: none; }
+.panel.shut .panel-arrow { transform: rotate(-90deg); }
+.panel-body { padding: 12px 14px; }
+
+/* Global controls */
+.gctrls { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px 16px; }
+.gctrl-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #3a3a3a; margin-bottom: 5px; }
+.gctrl-row { display: flex; align-items: center; gap: 7px; }
+.gctrl-val { font-size: 11px; color: #666; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 3px; background: #1e1e1e; border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px; border-radius: 50%; background: #404040; cursor: pointer;
+}
+input[type=range].move::-webkit-slider-thumb { background: #3878cc; }
+input[type=range].still::-webkit-slider-thumb { background: #1D9E75; }
+input[type=range].neutral::-webkit-slider-thumb { background: #555; }
+
+select.ctrl-sel {
+  background: #111; border: 1px solid #252525; color: #888;
+  padding: 4px 8px; border-radius: 5px; font-size: 12px; cursor: pointer; outline: none;
+  width: 100%;
+}
+.toggle { background: #111; border: 1px solid #252525; color: #555; padding: 4px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; }
+.toggle.on { background: #0d1f0d; border-color: #1a4a1a; color: #1D9E75; }
+.btn-danger { color: #7a3535; border-color: #3a1a1a; }
+.btn-danger:hover { color: #cc5555; background: #120808; }
+
+/* Gate grid */
+.gate-grid { display: grid; grid-template-columns: 40px minmax(0,1fr) minmax(0,1fr); gap: 2px 6px; align-items: center; }
+.ghdr { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; padding-bottom: 5px; }
+.glbl { font-size: 10px; text-align: center; padding: 3px 0; }
+.glbl-g { color: #333; }
+.glbl-d { font-size: 8px; color: #222; }
+.glbl.active .glbl-g { color: #666; }
+.glbl.active .glbl-d { color: #444; }
+.gctrl { display: flex; align-items: center; gap: 3px; padding: 2px 2px; border-radius: 4px; min-width: 0; }
+.gctrl input[type=range] { flex: 1; height: 4px; min-width: 0; }
+.tval { font-size: 10px; color: #444; width: 20px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.tval.hot { color: #aaa; font-weight: 600; }
+
+@keyframes flash-ok-bg  { 0%,60% { background: rgba(29,158,117,0.2); } 100% { background: transparent; } }
+@keyframes flash-err-bg { 0%,60% { background: rgba(224,64,64,0.2);  } 100% { background: transparent; } }
+.flash-ok  { animation: flash-ok-bg  1s ease-out forwards; }
+.flash-err { animation: flash-err-bg 1s ease-out forwards; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="header-title">LD2412</div>
+  <input class="ip" id="ip" value="192.168.0.201" placeholder="ESP32 IP">
+  <button class="btn" onclick="reconnect()">Connect</button>
+  <div class="conn-dot" id="cdot"></div>
+  <span class="conn-label" id="clbl">Disconnected</span>
+  <span class="age-badge" id="age-badge"></span>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-lbl">Presence</div><div class="stat-val" id="sv-presence">—</div></div>
+  <div class="stat"><div class="stat-lbl">Moving</div><div class="stat-val" id="sv-moving">—</div></div>
+  <div class="stat"><div class="stat-lbl">Still</div><div class="stat-val" id="sv-still">—</div></div>
+  <div class="stat"><div class="stat-lbl">Distance</div><div class="stat-val" id="sv-distance">—</div></div>
+  <div class="stat"><div class="stat-lbl">Move Dist</div><div class="stat-val" id="sv-movedist">—</div></div>
+  <div class="stat"><div class="stat-lbl">Still Dist</div><div class="stat-val" id="sv-stilldist">—</div></div>
+  <div class="stat"><div class="stat-lbl">Light</div><div class="stat-val" id="sv-light">—</div></div>
+</div>
+
+<div class="layout">
+<div class="radar-col" id="radar-col">
+  <canvas id="c"></canvas>
+  <div class="legend">
+    <div class="legend-item"><div class="lsw" style="background:#3878cc"></div>Move energy</div>
+    <div class="legend-item"><div class="lsw" style="background:#1D9E75"></div>Still energy</div>
+    <div class="legend-item"><div class="lsw-dash" style="border-color:#3878cc"></div>Move thresh</div>
+    <div class="legend-item"><div class="lsw-dash" style="border-color:#1D9E75"></div>Still thresh</div>
+    <div class="legend-item"><div class="lsw-dash" style="border-color:#ffb400"></div>Min/Max</div>
+  </div>
+</div>
+<div class="controls-col">
+
+<div class="panel" id="p-global">
+  <div class="panel-head" onclick="togglePanel('p-global')">
+    <span class="panel-ttl">Global Controls</span>
+    <span class="panel-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="gctrls">
+      <div>
+        <div class="gctrl-lbl">Timeout (s)</div>
+        <div class="gctrl-row">
+          <input type="range" class="neutral" min="0" max="120" step="1" id="c-timeout"
+            oninput="liveVal('v-timeout',this.value+'s')"
+            onchange="setNum('Presence Timeout',this.value,'v-timeout')">
+          <span class="gctrl-val" id="v-timeout">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Min Gate</div>
+        <div class="gctrl-row">
+          <input type="range" class="neutral" min="0" max="13" step="1" id="c-mingate"
+            oninput="liveVal('v-mingate',this.value); minGate=+this.value; draw()"
+            onchange="setNum('Min Distance Gate',this.value,'v-mingate')">
+          <span class="gctrl-val" id="v-mingate">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Max Gate</div>
+        <div class="gctrl-row">
+          <input type="range" class="neutral" min="0" max="13" step="1" id="c-maxgate"
+            oninput="liveVal('v-maxgate',this.value); maxGate=+this.value; draw()"
+            onchange="setNum('Max Distance Gate',this.value,'v-maxgate')">
+          <span class="gctrl-val" id="v-maxgate">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Light Threshold</div>
+        <div class="gctrl-row">
+          <input type="range" class="neutral" min="0" max="255" step="1" id="c-lightthresh"
+            oninput="liveVal('v-lightthresh',this.value)"
+            onchange="setNum('Light Threshold',this.value,'v-lightthresh')">
+          <span class="gctrl-val" id="v-lightthresh">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Distance Resolution</div>
+        <select class="ctrl-sel" id="c-resolution" onchange="setSel('Distance Resolution',this.value,'c-resolution')">
+          <option value="0.75m">0.75m</option>
+          <option value="0.2m">0.2m</option>
+        </select>
+      </div>
+      <div>
+        <div class="gctrl-lbl">OUT Pin Level</div>
+        <select class="ctrl-sel" id="c-outpin" onchange="setSel('OUT Pin Level',this.value,'c-outpin')">
+          <option value="Active High">Active High</option>
+          <option value="Active Low">Active Low</option>
+        </select>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Engineering Mode</div>
+        <span class="toggle on" id="btn-eng" style="cursor:default;opacity:0.6;font-size:11px">ON (auto)</span>
+      </div>
+      <div>
+        <div class="gctrl-lbl">Factory Reset</div>
+        <button class="btn btn-danger" onclick="doReset()">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="p-gates">
+  <div class="panel-head" onclick="togglePanel('p-gates')">
+    <span class="panel-ttl">Gate Thresholds</span>
+    <span class="panel-arrow">▼</span>
+  </div>
+  <div class="panel-body">
+    <div class="gate-grid" id="gate-grid">
+      <div></div>
+      <div class="ghdr" style="color:#3878cc">Move</div>
+      <div class="ghdr" style="color:#1D9E75">Still</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- controls-col -->
+</div><!-- layout -->
+
+</div><!-- app -->
+<script>
+const GATES = 14;
+const GATE_M = 0.75;
+const HALF_FOV = 75 * Math.PI / 180 / 2;
+
+let moveEnergy  = new Array(GATES).fill(0);
+let stillEnergy = new Array(GATES).fill(0);
+let moveThresh  = new Array(GATES).fill(50);
+let stillThresh = new Array(GATES).fill(50);
+let detDist = 0, minGate = 0, maxGate = 13;
+let engOn = false, es, reconnectTimer, tickerInterval;
+let lastUpdate = null, connected = false;
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Build gate rows
+const grid = document.getElementById('gate-grid');
+for (let g = 0; g < GATES; g++) {
+  const dist = ((g + 1) * GATE_M).toFixed(2).replace(/\.?0+$/, '') + 'm';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'glbl'; lbl.id = `glbl-${g}`;
+  lbl.innerHTML = `<div class="glbl-g">G${g}</div><div class="glbl-d">${dist}</div>`;
+
+  const mc = document.createElement('div');
+  mc.className = 'gctrl';
+  mc.id = `mc-${g}`;
+  mc.innerHTML = `<input type="range" class="move" min="0" max="100" step="1" value="50" id="mt-${g}"
+    oninput="onGateInput(${g},'move',this.value)"
+    onchange="setNum('Gate ${g} Move Threshold',this.value,'mc-${g}')">
+    <span class="tval" id="mtv-${g}">50</span>`;
+
+  const sc = document.createElement('div');
+  sc.className = 'gctrl';
+  sc.id = `sc-${g}`;
+  sc.innerHTML = `<input type="range" class="still" min="0" max="100" step="1" value="50" id="st-${g}"
+    oninput="onGateInput(${g},'still',this.value)"
+    onchange="setNum('Gate ${g} Still Threshold',this.value,'sc-${g}')">
+    <span class="tval" id="stv-${g}">50</span>`;
+
+  grid.appendChild(lbl); grid.appendChild(mc); grid.appendChild(sc);
+}
+
+// Canvas
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const col = document.getElementById('radar-col');
+  const W = col.clientWidth;
+  const H = col.clientHeight - (document.querySelector('.legend').offsetHeight + 8);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+
+function draw() {
+  const W = canvas.clientWidth || canvas.width, H = canvas.clientHeight || canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H - 12;
+  const maxR = H - 22;
+  const gR = maxR / GATES;
+  const CA = -Math.PI / 2;
+  const SA = CA - HALF_FOV, EA = CA + HALF_FOV;
+
+  // Gates (back to front)
+  for (let g = GATES - 1; g >= 0; g--) {
+    const r1 = g * gR, r2 = (g + 1) * gR;
+    const me = moveEnergy[g] / 100;
+    const se = stillEnergy[g] / 100;
+    const inRange = g >= minGate && g <= maxGate;
+
+    // Dim background
+    arc(cx, cy, r1, r2, SA, EA);
+    ctx.fillStyle = inRange ? '#0f0f0f' : '#090909';
+    ctx.fill();
+
+    // Energy bar: fill from r1 outward proportional to energy value
+    // This creates a "meter" effect per gate — threshold lines then show the trigger point
+    const mR = r1 + gR * me;
+    const sR = r1 + gR * se;
+
+    if (me > 0.01) {
+      arc(cx, cy, r1, mR, SA, EA);
+      ctx.fillStyle = `rgba(55,120,204,${inRange ? 0.75 : 0.25})`;
+      ctx.fill();
+    }
+    if (se > 0.01) {
+      arc(cx, cy, r1, sR, SA, EA);
+      ctx.fillStyle = `rgba(29,158,117,${inRange ? 0.65 : 0.2})`;
+      ctx.fill();
+    }
+
+    // Gate outer boundary
+    ctx.beginPath(); ctx.arc(cx, cy, r2, SA, EA);
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)'; ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Move threshold arc (dashed blue)
+    const mtr = r1 + gR * (moveThresh[g] / 100);
+    ctx.beginPath(); ctx.arc(cx, cy, mtr, SA, EA);
+    ctx.strokeStyle = inRange ? 'rgba(55,120,204,0.65)' : 'rgba(55,120,204,0.2)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+    // Still threshold arc (dashed green)
+    const str = r1 + gR * (stillThresh[g] / 100);
+    ctx.beginPath(); ctx.arc(cx, cy, str, SA, EA);
+    ctx.strokeStyle = inRange ? 'rgba(29,158,117,0.65)' : 'rgba(29,158,117,0.2)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([2, 5]); ctx.stroke(); ctx.setLineDash([]);
+
+    // Triggered glow on outer arc
+    if (inRange && (moveEnergy[g] > moveThresh[g] || stillEnergy[g] > stillThresh[g])) {
+      const c = moveEnergy[g] > stillEnergy[g] ? 'rgba(55,120,204,0.7)' : 'rgba(29,158,117,0.7)';
+      ctx.beginPath(); ctx.arc(cx, cy, r2 - 1, SA, EA);
+      ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // Distance label (right edge, every other gate)
+    if (g % 2 === 1) {
+      const lr = r2 - 3;
+      const lx = cx + lr * Math.cos(EA - 0.04);
+      const ly = cy + lr * Math.sin(EA - 0.04);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText(((g + 1) * GATE_M).toFixed(2).replace(/\.?0+$/, '') + 'm', lx + 3, ly);
+    }
+  }
+
+  // Min gate marker (amber)
+  if (minGate > 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, minGate * gR, SA, EA);
+    ctx.strokeStyle = 'rgba(255,180,0,0.45)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  // Max gate marker (amber)
+  ctx.beginPath(); ctx.arc(cx, cy, (maxGate + 1) * gR, SA, EA);
+  ctx.strokeStyle = 'rgba(255,180,0,0.45)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Detection distance dot
+  if (detDist > 0) {
+    const dr = Math.min(detDist / 100 / (GATES * GATE_M), 1) * maxR;
+    const dx = cx + dr * Math.cos(CA), dy = cy + dr * Math.sin(CA);
+    ctx.beginPath(); ctx.arc(dx, dy, 11, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(224,64,64,0.12)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, dy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(224,64,64,0.5)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#e04040'; ctx.fill();
+  }
+
+  // Sensor origin
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#181818'; ctx.fill();
+}
+
+function arc(cx, cy, r1, r2, sa, ea) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r2, sa, ea);
+  ctx.arc(cx, cy, Math.max(r1, 0.5), ea, sa, true);
+  ctx.closePath();
+}
+
+// SSE
+function connect() {
+  const host = document.getElementById('ip').value.trim();
+  if (es) { es.close(); es = null; }
+  setConn(false, 'Connecting…');
+  es = new EventSource('http://' + host + '/events');
+  es.onopen = () => {
+    connected = true; lastUpdate = null;
+    setConn(true, host);
+    clearTimeout(reconnectTimer);
+    clearInterval(tickerInterval);
+    tickerInterval = setInterval(tick, 1000);
+    setTimeout(ensureEngMode, 500);
+  };
+  es.onerror = () => {
+    connected = false;
+    setConn(false, 'Reconnecting in 5s…');
+    document.getElementById('age-badge').className = 'age-badge';
+    document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
+    es.close(); es = null;
+    reconnectTimer = setTimeout(connect, 5000);
+  };
+  es.addEventListener('state', e => { try { handle(JSON.parse(e.data)); } catch(_) {} });
+}
+function reconnect() { connect(); }
+
+function markUpdate() {
+  lastUpdate = Date.now();
+  document.getElementById('cdot').classList.add('live');
+  clearTimeout(markUpdate._t);
+  markUpdate._t = setTimeout(() => document.getElementById('cdot').classList.remove('live'), 300);
+}
+
+function tick() {
+  const badge = document.getElementById('age-badge');
+  if (!connected) { badge.className = 'age-badge'; return; }
+  if (!lastUpdate) { badge.className = 'age-badge ok'; badge.textContent = 'waiting…'; return; }
+  const age = (Date.now() - lastUpdate) / 1000;
+  if (age < 2) {
+    badge.className = 'age-badge live'; badge.textContent = 'live';
+    document.querySelectorAll('.stat-val.stale').forEach(e => e.classList.remove('stale'));
+  } else if (age < 8) {
+    badge.className = 'age-badge ok'; badge.textContent = Math.round(age) + 's ago';
+    document.querySelectorAll('.stat-val.stale').forEach(e => e.classList.remove('stale'));
+  } else if (age < 30) {
+    badge.className = 'age-badge stale'; badge.textContent = '⚠ ' + Math.round(age) + 's ago';
+    document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
+  } else {
+    badge.className = 'age-badge dead'; badge.textContent = '✕ stale ' + Math.round(age) + 's';
+    document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
+  }
+}
+
+function handle(d) {
+  markUpdate();
+  const raw = (d.id || '').toLowerCase();
+  const id = raw.replace(/[^a-z0-9_]/g, '_');
+  const num = d.value !== undefined ? parseFloat(d.value) : parseFloat(d.state);
+  const str = String(d.value !== undefined ? d.value : d.state).trim();
+  const on = str === 'ON' || str === 'on' || str === 'true';
+
+  // Binary sensors
+  if (id.includes('presence') && !id.includes('timeout') && !id.includes('moving') && !id.includes('still'))
+    setBin('sv-presence', on);
+  if (id.includes('moving_target')) setBin('sv-moving', on);
+  if (id.includes('still_target'))  setBin('sv-still', on);
+
+  // Distances / light
+  if (id.includes('detection_distance')) { detDist = num; setStat('sv-distance', num, 'cm'); draw(); }
+  if (id.includes('moving_distance') && !id.includes('gate')) setStat('sv-movedist', num, 'cm');
+  if (id.includes('still_distance')  && !id.includes('gate')) setStat('sv-stilldist', num, 'cm');
+  if (id.includes('light') && !id.includes('gate') && !id.includes('threshold')) setStat('sv-light', num, '');
+
+  // Per-gate data
+  const gm = id.match(/gate_(\d+)_(move|still)/);
+  if (gm) {
+    const g = +gm[1], type = gm[2];
+    if (g < GATES) {
+      if (id.includes('energy')) {
+        if (type === 'move') moveEnergy[g] = num;
+        else                 stillEnergy[g] = num;
+        updateTval(`mtv-${g}`, moveThresh[g], moveEnergy[g]);
+        updateTval(`stv-${g}`, stillThresh[g], stillEnergy[g]);
+        updateGateTrack(g);
+        draw();
+      }
+      if (id.includes('threshold')) {
+        if (type === 'move') { moveThresh[g] = num; setSlider(`mt-${g}`, num); updateTval(`mtv-${g}`, num, moveEnergy[g]); }
+        else                 { stillThresh[g] = num; setSlider(`st-${g}`, num); updateTval(`stv-${g}`, num, stillEnergy[g]); }
+        updateGateTrack(g);
+        draw();
+      }
+    }
+  }
+
+  // Global controls
+  if (id.includes('presence_timeout') || (id.includes('timeout') && !id.includes('reboot')))
+    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); }
+  if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); updateGateLabels(); draw(); }
+  if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); updateGateLabels(); draw(); }
+  if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); }
+  if (id.includes('distance_resolution')) setSelectVal('c-resolution', str);
+  if (id.includes('out_pin_level'))       setSelectVal('c-outpin', str);
+  if (id.includes('engineering_mode')) {
+    engOn = on;
+    if (!on && !ensureEngMode._pending) {
+      ensureEngMode._pending = true;
+      setTimeout(() => { ensureEngMode._pending = false; postSwitch('Engineering Mode', 'turn_on'); }, 1000);
+    }
+  }
+}
+
+// REST helpers
+function ip() { return document.getElementById('ip').value.trim(); }
+
+function flash(id, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash-ok', 'flash-err');
+  void el.offsetWidth;
+  el.classList.add(ok ? 'flash-ok' : 'flash-err');
+}
+
+async function setNum(id, val, flashId) {
+  const ok = await fetch(`http://${ip()}/number/${encodeURIComponent(id)}/set`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `value=${val}`
+  }).then(r => r.ok).catch(() => false);
+  if (flashId) flash(flashId, ok);
+}
+
+async function setSel(id, val, flashId) {
+  const ok = await fetch(`http://${ip()}/select/${encodeURIComponent(id)}/set`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `option=${encodeURIComponent(val)}`
+  }).then(r => r.ok).catch(() => false);
+  if (flashId) flash(flashId, ok);
+}
+
+async function postSwitch(id, action) {
+  await fetch(`http://${ip()}/switch/${encodeURIComponent(id)}/${action}`, { method: 'POST' }).catch(() => {});
+}
+
+function ensureEngMode() {
+  if (!engOn) postSwitch('Engineering Mode', 'turn_on');
+}
+
+function doReset() {
+  if (confirm('Factory reset the LD2412? All calibration will be lost.'))
+    fetch(`http://${ip()}/button/${encodeURIComponent('Factory Reset')}/press`, { method: 'POST' }).catch(() => {});
+}
+
+// UI helpers
+function updateGateTrack(g) {
+  const me = moveEnergy[g], mt = moveThresh[g];
+  const se = stillEnergy[g], st = stillThresh[g];
+  const ms = document.getElementById(`mt-${g}`);
+  const ss = document.getElementById(`st-${g}`);
+  if (ms) {
+    const hot = me > mt;
+    const c = hot ? 'rgba(55,120,204,0.85)' : 'rgba(55,120,204,0.4)';
+    ms.style.background = `linear-gradient(to right,${c} 0%,${c} ${me}%,#1e1e1e ${me}%,#1e1e1e 100%)`;
+  }
+  if (ss) {
+    const hot = se > st;
+    const c = hot ? 'rgba(29,158,117,0.85)' : 'rgba(29,158,117,0.4)';
+    ss.style.background = `linear-gradient(to right,${c} 0%,${c} ${se}%,#1e1e1e ${se}%,#1e1e1e 100%)`;
+  }
+}
+
+function onGateInput(g, type, val) {
+  val = +val;
+  if (type === 'move') { moveThresh[g] = val; updateTval(`mtv-${g}`, val, moveEnergy[g]); }
+  else                 { stillThresh[g] = val; updateTval(`stv-${g}`, val, stillEnergy[g]); }
+  updateGateTrack(g);
+  draw();
+}
+
+function liveVal(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+function setVal(id, v)  { const e = document.getElementById(id); if (e) e.textContent = v; }
+function setSlider(id, v) { const e = document.getElementById(id); if (e) e.value = v; }
+
+function updateTval(id, thresh, energy) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.textContent = Math.round(thresh);
+  e.className = 'tval' + (energy > thresh ? ' hot' : '');
+}
+
+function setSelectVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  for (const o of el.options) if (o.value === val || o.text === val) { el.value = o.value; break; }
+}
+
+function setBin(id, on) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.textContent = on ? 'ON' : 'OFF';
+  e.className = 'stat-val' + (on ? ' on' : '');
+}
+
+function setStat(id, val, unit) {
+  const e = document.getElementById(id);
+  if (e && !isNaN(val)) { e.textContent = Math.round(val) + unit; e.className = 'stat-val live'; }
+}
+
+function setConn(on, msg) {
+  document.getElementById('cdot').className = 'conn-dot' + (on ? ' on' : '');
+  const l = document.getElementById('clbl');
+  l.textContent = msg; l.className = 'conn-label' + (on ? ' on' : '');
+}
+
+function updateGateLabels() {
+  for (let g = 0; g < GATES; g++) {
+    const e = document.getElementById(`glbl-${g}`);
+    if (e) e.className = 'glbl' + (g >= minGate && g <= maxGate ? ' active' : '');
+  }
+}
+
+function togglePanel(id) {
+  const p = document.getElementById(id);
+  p.classList.toggle('shut');
+  p.querySelector('.panel-arrow').textContent = p.classList.contains('shut') ? '▶' : '▼';
+}
+
+window.addEventListener('resize', resize);
+resize();
+connect();
+</script>
+</body>
+</html>
