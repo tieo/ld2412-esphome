@@ -102,13 +102,9 @@ select.ctrl-sel {
 .tval { font-size: 10px; color: #444; width: 20px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .tval.hot { color: #aaa; font-weight: 600; }
 
-@keyframes flash-ok-bg  { 0%,60% { background: rgba(29,158,117,0.2); } 100% { background: transparent; } }
-@keyframes flash-err-bg { 0%,60% { background: rgba(224,64,64,0.2);  } 100% { background: transparent; } }
-.flash-ok  { animation: flash-ok-bg  1s ease-out forwards; }
+@keyframes flash-err-bg { 0%,60% { background: rgba(224,64,64,0.18); } 100% { background: transparent; } }
 .flash-err { animation: flash-err-bg 1s ease-out forwards; }
 .gctrl-val.pending, .tval.pending { color: #c88000; }
-@keyframes confirmed-fade { 0% { color: #1D9E75; } 100% { color: inherit; } }
-.gctrl-val.confirmed, .tval.confirmed { animation: confirmed-fade 1.2s ease-out forwards; }
 </style>
 </head>
 <body>
@@ -514,55 +510,54 @@ function handle(d) {
 // REST helpers
 function ip() { return document.getElementById('ip').value.trim(); }
 
-function flash(id, ok) {
+function flashErr(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.classList.remove('flash-ok', 'flash-err');
+  el.classList.remove('flash-err');
   void el.offsetWidth;
-  el.classList.add(ok ? 'flash-ok' : 'flash-err');
+  el.classList.add('flash-err');
 }
+
+const _pending = {};
 
 function markPending(id, val) {
+  _pending[id] = val;
+  const e = document.getElementById(id);
+  if (e) { e.classList.add('pending'); e.style.color = ''; }
+}
+
+function confirmPending(id, val) {
+  if (_pending[id] === undefined) return;
+  if (Math.abs(_pending[id] - parseFloat(val)) > 0.5) return;
+  delete _pending[id];
   const e = document.getElementById(id);
   if (!e) return;
-  e.classList.add('pending');
-  e.classList.remove('confirmed');
-  e.dataset.pendingVal = val;
+  e.classList.remove('pending');
+  e.style.color = '#1D9E75';
+  clearTimeout(e._ct);
+  e._ct = setTimeout(() => { e.style.color = ''; }, 3000);
 }
 
-function confirmPending(id, confirmedVal) {
-  const e = document.getElementById(id);
-  if (!e || !e.classList.contains('pending')) return;
-  if (Math.abs(parseFloat(e.dataset.pendingVal) - parseFloat(confirmedVal)) < 0.5) {
-    e.classList.remove('pending');
-    e.classList.remove('confirmed');
-    void e.offsetWidth;
-    e.classList.add('confirmed');
-    delete e.dataset.pendingVal;
-  }
-}
-
-async function setNum(id, val, flashId, pendingId) {
+async function setNum(id, val, rowId, pendingId) {
   if (pendingId) markPending(pendingId, parseFloat(val));
   const ok = await fetch(`http://${ip()}/number/${encodeURIComponent(id)}/set`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `value=${val}`
   }).then(r => r.ok).catch(() => false);
-  if (flashId) flash(flashId, ok);
-  if (!ok && pendingId) {
-    const e = document.getElementById(pendingId);
-    if (e) { e.classList.remove('pending'); delete e.dataset.pendingVal; }
+  if (!ok) {
+    if (rowId) flashErr(rowId);
+    if (pendingId) { delete _pending[pendingId]; const e = document.getElementById(pendingId); if (e) { e.classList.remove('pending'); e.style.color = ''; } }
   }
 }
 
-async function setSel(id, val, flashId) {
+async function setSel(id, val, rowId) {
   const ok = await fetch(`http://${ip()}/select/${encodeURIComponent(id)}/set`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `option=${encodeURIComponent(val)}`
   }).then(r => r.ok).catch(() => false);
-  if (flashId) flash(flashId, ok);
+  if (!ok && rowId) flashErr(rowId);
 }
 
 async function postSwitch(id, action) {
