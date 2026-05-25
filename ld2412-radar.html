@@ -482,20 +482,32 @@ function handle(d) {
         draw();
       }
       if (id.includes('threshold')) {
-        if (type === 'move') { moveThresh[g] = num; setSlider(`mt-${g}`, num); updateTval(`mtv-${g}`, num, moveEnergy[g]); confirmPending(`mtv-${g}`, num); }
-        else                 { stillThresh[g] = num; setSlider(`st-${g}`, num); updateTval(`stv-${g}`, num, stillEnergy[g]); confirmPending(`stv-${g}`, num); }
+        if (type === 'move') { moveThresh[g] = num; setSlider(`mt-${g}`, num); updateTval(`mtv-${g}`, num, moveEnergy[g]); confirmPending(`mtv-${g}`); }
+        else                 { stillThresh[g] = num; setSlider(`st-${g}`, num); updateTval(`stv-${g}`, num, stillEnergy[g]); confirmPending(`stv-${g}`); }
         updateGateTrack(g);
         draw();
       }
     }
   }
 
-  // Global controls
+  // Global controls - also update slider constraints from sensor-reported min/max
+  const sliderConstraints = {
+    'presence_timeout': 'c-timeout', 'timeout': 'c-timeout',
+    'min_distance_gate': 'c-mingate', 'max_distance_gate': 'c-maxgate',
+    'light_threshold': 'c-lightthresh'
+  };
+  for (const [key, sid] of Object.entries(sliderConstraints)) {
+    if (id.includes(key) && d.min_value !== undefined) {
+      const sl = document.getElementById(sid);
+      if (sl) { sl.min = d.min_value; sl.max = d.max_value; }
+      break;
+    }
+  }
   if (id.includes('presence_timeout') || (id.includes('timeout') && !id.includes('reboot')))
-    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); confirmPending('v-timeout', num); }
-  if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); confirmPending('v-mingate', num); updateGateLabels(); draw(); }
-  if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); confirmPending('v-maxgate', num); updateGateLabels(); draw(); }
-  if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); confirmPending('v-lightthresh', num); }
+    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); confirmPending('v-timeout'); }
+  if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); confirmPending('v-mingate'); updateGateLabels(); draw(); }
+  if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); confirmPending('v-maxgate'); updateGateLabels(); draw(); }
+  if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); confirmPending('v-lightthresh'); }
   if (id.includes('distance_resolution')) setSelectVal('c-resolution', str);
   if (id.includes('out_pin_level'))       setSelectVal('c-outpin', str);
   if (id.includes('engineering_mode')) {
@@ -526,9 +538,8 @@ function markPending(id, val) {
   if (e) { e.classList.add('pending'); e.style.color = ''; }
 }
 
-function confirmPending(id, val) {
+function confirmPending(id) {
   if (_pending[id] === undefined) return;
-  if (Math.abs(_pending[id] - parseFloat(val)) > 0.5) return;
   delete _pending[id];
   const e = document.getElementById(id);
   if (!e) return;
