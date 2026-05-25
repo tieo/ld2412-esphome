@@ -446,6 +446,7 @@ function tick() {
   } else {
     badge.className = 'age-badge dead'; badge.textContent = '✕ stale ' + Math.round(age) + 's';
     document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
+    if (age > 45) connect();
   }
 }
 
