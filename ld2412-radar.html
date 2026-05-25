@@ -571,25 +571,40 @@ function confirmPending(id) {
 
 async function setNum(id, val, rowId, pendingId) {
   if (pendingId) markPending(pendingId, parseFloat(val));
-  const ok = await fetch(`http://${ip()}/number/${encodeURIComponent(id)}/set`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `value=${val}`
-  }).then(r => r.ok).catch(() => false);
+  const ok = await withEngPause(() =>
+    fetch(`http://${ip()}/number/${encodeURIComponent(id)}/set`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `value=${val}`
+    }).then(r => r.ok).catch(() => false)
+  );
   if (!ok) {
     if (rowId) flashErr(rowId);
     if (pendingId) { delete _pending[pendingId]; const e = document.getElementById(pendingId); if (e) { e.classList.remove('pending'); e.style.color = ''; } }
   }
 }
 
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function withEngPause(fn) {
+  const was = engOn;
+  if (was) { await postSwitch('Engineering Mode', 'turn_off'); await delay(400); }
+  const result = await fn();
+  if (was) { await delay(150); await postSwitch('Engineering Mode', 'turn_on'); }
+  return result;
+}
+
 async function setSel(id, val, rowId) {
   const el = rowId ? document.getElementById(rowId) : null;
-  if (el) el.classList.add('pending');
-  const ok = await fetch(`http://${ip()}/select/${encodeURIComponent(id)}/set`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `option=${encodeURIComponent(val)}`
-  }).then(r => r.ok).catch(() => false);
+  const oldVal = el ? (el.dataset.confirmed || '') : '';
+  if (el) { el.classList.add('pending'); el.value = oldVal; }
+  const ok = await withEngPause(() =>
+    fetch(`http://${ip()}/select/${encodeURIComponent(id)}/set`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `option=${encodeURIComponent(val)}`
+    }).then(r => r.ok).catch(() => false)
+  );
   if (!ok) { if (el) el.classList.remove('pending'); if (rowId) flashErr(rowId); }
 }
 
@@ -667,7 +682,7 @@ function updateTval(id, thresh, energy) {
 function setSelectVal(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
-  for (const o of el.options) if (o.value === val || o.text === val) { el.value = o.value; break; }
+  for (const o of el.options) if (o.value === val || o.text === val) { el.value = o.value; el.dataset.confirmed = o.value; break; }
   el.classList.remove('pending');
 }
 
