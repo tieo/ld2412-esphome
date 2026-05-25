@@ -63,9 +63,9 @@ canvas { display: block; flex: 1; min-height: 0; }
 
 /* Global controls */
 .gctrls { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px 16px; }
-.gctrl-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #3a3a3a; margin-bottom: 5px; }
-.gctrl-row { display: flex; align-items: center; gap: 7px; }
-.gctrl-val { font-size: 11px; color: #666; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.gctrl-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #3a3a3a; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: baseline; }
+.gctrl-val { font-size: 11px; color: #777; font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: 0; }
+.gctrl-row { display: flex; align-items: center; }
 
 input[type=range] {
   -webkit-appearance: none; appearance: none;
@@ -151,39 +151,35 @@ select.ctrl-sel {
   <div class="panel-body">
     <div class="gctrls">
       <div>
-        <div class="gctrl-lbl">Timeout (s)</div>
+        <div class="gctrl-lbl">Timeout (s)<span class="gctrl-val" id="v-timeout">—</span></div>
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="120" step="1" id="c-timeout"
             oninput="liveVal('v-timeout',this.value+'s')"
             onchange="setNum('Presence Timeout',this.value,'v-timeout')">
-          <span class="gctrl-val" id="v-timeout">—</span>
         </div>
       </div>
       <div>
-        <div class="gctrl-lbl">Min Gate</div>
+        <div class="gctrl-lbl">Min Gate<span class="gctrl-val" id="v-mingate">—</span></div>
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="13" step="1" id="c-mingate"
             oninput="liveVal('v-mingate',this.value); minGate=+this.value; draw()"
             onchange="setNum('Min Distance Gate',this.value,'v-mingate')">
-          <span class="gctrl-val" id="v-mingate">—</span>
         </div>
       </div>
       <div>
-        <div class="gctrl-lbl">Max Gate</div>
+        <div class="gctrl-lbl">Max Gate<span class="gctrl-val" id="v-maxgate">—</span></div>
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="13" step="1" id="c-maxgate"
             oninput="liveVal('v-maxgate',this.value); maxGate=+this.value; draw()"
             onchange="setNum('Max Distance Gate',this.value,'v-maxgate')">
-          <span class="gctrl-val" id="v-maxgate">—</span>
         </div>
       </div>
       <div>
-        <div class="gctrl-lbl">Light Threshold</div>
+        <div class="gctrl-lbl">Light Threshold<span class="gctrl-val" id="v-lightthresh">—</span></div>
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="255" step="1" id="c-lightthresh"
             oninput="liveVal('v-lightthresh',this.value)"
             onchange="setNum('Light Threshold',this.value,'v-lightthresh')">
-          <span class="gctrl-val" id="v-lightthresh">—</span>
         </div>
       </div>
       <div>
