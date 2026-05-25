@@ -21,4 +21,4 @@ After that OTA works. Engineering mode is required for gate energy data - the da
 
 - UART: TX→GPIO17, RX→GPIO16
 - Dashboard talks directly to the ESP's web server, no backend needed
-- `Light Threshold` gates the hardware OUT pin based on ambient light — set to 0 to ignore it
+- `Light Threshold` gates the hardware OUT pin based on ambient light, set to 0 to ignore it

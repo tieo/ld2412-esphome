@@ -106,6 +106,9 @@ select.ctrl-sel {
 @keyframes flash-err-bg { 0%,60% { background: rgba(224,64,64,0.2);  } 100% { background: transparent; } }
 .flash-ok  { animation: flash-ok-bg  1s ease-out forwards; }
 .flash-err { animation: flash-err-bg 1s ease-out forwards; }
+.gctrl-val.pending, .tval.pending { color: #c88000; }
+@keyframes confirmed-fade { 0% { color: #1D9E75; } 100% { color: inherit; } }
+.gctrl-val.confirmed, .tval.confirmed { animation: confirmed-fade 1.2s ease-out forwards; }
 </style>
 </head>
 <body>
@@ -155,7 +158,7 @@ select.ctrl-sel {
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="120" step="1" id="c-timeout"
             oninput="liveVal('v-timeout',this.value+'s')"
-            onchange="setNum('Presence Timeout',this.value,'v-timeout')">
+            onchange="setNum('Presence Timeout',this.value,'v-timeout','v-timeout')">
         </div>
       </div>
       <div>
@@ -163,7 +166,7 @@ select.ctrl-sel {
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="13" step="1" id="c-mingate"
             oninput="liveVal('v-mingate',this.value); minGate=+this.value; draw()"
-            onchange="setNum('Min Distance Gate',this.value,'v-mingate')">
+            onchange="setNum('Min Distance Gate',this.value,'v-mingate','v-mingate')">
         </div>
       </div>
       <div>
@@ -171,7 +174,7 @@ select.ctrl-sel {
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="13" step="1" id="c-maxgate"
             oninput="liveVal('v-maxgate',this.value); maxGate=+this.value; draw()"
-            onchange="setNum('Max Distance Gate',this.value,'v-maxgate')">
+            onchange="setNum('Max Distance Gate',this.value,'v-maxgate','v-maxgate')">
         </div>
       </div>
       <div>
@@ -179,7 +182,7 @@ select.ctrl-sel {
         <div class="gctrl-row">
           <input type="range" class="neutral" min="0" max="255" step="1" id="c-lightthresh"
             oninput="liveVal('v-lightthresh',this.value)"
-            onchange="setNum('Light Threshold',this.value,'v-lightthresh')">
+            onchange="setNum('Light Threshold',this.value,'v-lightthresh','v-lightthresh')">
         </div>
       </div>
       <div>
@@ -256,7 +259,7 @@ for (let g = 0; g < GATES; g++) {
   mc.id = `mc-${g}`;
   mc.innerHTML = `<input type="range" class="move" min="0" max="100" step="1" value="50" id="mt-${g}"
     oninput="onGateInput(${g},'move',this.value)"
-    onchange="setNum('Gate ${g} Move Threshold',this.value,'mc-${g}')">
+    onchange="setNum('Gate ${g} Move Threshold',this.value,'mc-${g}','mtv-${g}')">
     <span class="tval" id="mtv-${g}">50</span>`;
 
   const sc = document.createElement('div');
@@ -264,7 +267,7 @@ for (let g = 0; g < GATES; g++) {
   sc.id = `sc-${g}`;
   sc.innerHTML = `<input type="range" class="still" min="0" max="100" step="1" value="50" id="st-${g}"
     oninput="onGateInput(${g},'still',this.value)"
-    onchange="setNum('Gate ${g} Still Threshold',this.value,'sc-${g}')">
+    onchange="setNum('Gate ${g} Still Threshold',this.value,'sc-${g}','stv-${g}')">
     <span class="tval" id="stv-${g}">50</span>`;
 
   grid.appendChild(lbl); grid.appendChild(mc); grid.appendChild(sc);
@@ -483,8 +486,8 @@ function handle(d) {
         draw();
       }
       if (id.includes('threshold')) {
-        if (type === 'move') { moveThresh[g] = num; setSlider(`mt-${g}`, num); updateTval(`mtv-${g}`, num, moveEnergy[g]); }
-        else                 { stillThresh[g] = num; setSlider(`st-${g}`, num); updateTval(`stv-${g}`, num, stillEnergy[g]); }
+        if (type === 'move') { moveThresh[g] = num; setSlider(`mt-${g}`, num); updateTval(`mtv-${g}`, num, moveEnergy[g]); confirmPending(`mtv-${g}`, num); }
+        else                 { stillThresh[g] = num; setSlider(`st-${g}`, num); updateTval(`stv-${g}`, num, stillEnergy[g]); confirmPending(`stv-${g}`, num); }
         updateGateTrack(g);
         draw();
       }
@@ -493,10 +496,10 @@ function handle(d) {
 
   // Global controls
   if (id.includes('presence_timeout') || (id.includes('timeout') && !id.includes('reboot')))
-    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); }
-  if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); updateGateLabels(); draw(); }
-  if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); updateGateLabels(); draw(); }
-  if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); }
+    { setSlider('c-timeout', num); setVal('v-timeout', num + 's'); confirmPending('v-timeout', num); }
+  if (id.includes('min_distance_gate')) { minGate = num; setSlider('c-mingate', num); setVal('v-mingate', num); confirmPending('v-mingate', num); updateGateLabels(); draw(); }
+  if (id.includes('max_distance_gate')) { maxGate = num; setSlider('c-maxgate', num); setVal('v-maxgate', num); confirmPending('v-maxgate', num); updateGateLabels(); draw(); }
+  if (id.includes('light_threshold'))   { setSlider('c-lightthresh', num); setVal('v-lightthresh', num); confirmPending('v-lightthresh', num); }
   if (id.includes('distance_resolution')) setSelectVal('c-resolution', str);
   if (id.includes('out_pin_level'))       setSelectVal('c-outpin', str);
   if (id.includes('engineering_mode')) {
@@ -519,13 +522,38 @@ function flash(id, ok) {
   el.classList.add(ok ? 'flash-ok' : 'flash-err');
 }
 
-async function setNum(id, val, flashId) {
+function markPending(id, val) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.classList.add('pending');
+  e.classList.remove('confirmed');
+  e.dataset.pendingVal = val;
+}
+
+function confirmPending(id, confirmedVal) {
+  const e = document.getElementById(id);
+  if (!e || !e.classList.contains('pending')) return;
+  if (Math.abs(parseFloat(e.dataset.pendingVal) - parseFloat(confirmedVal)) < 0.5) {
+    e.classList.remove('pending');
+    e.classList.remove('confirmed');
+    void e.offsetWidth;
+    e.classList.add('confirmed');
+    delete e.dataset.pendingVal;
+  }
+}
+
+async function setNum(id, val, flashId, pendingId) {
+  if (pendingId) markPending(pendingId, parseFloat(val));
   const ok = await fetch(`http://${ip()}/number/${encodeURIComponent(id)}/set`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `value=${val}`
   }).then(r => r.ok).catch(() => false);
   if (flashId) flash(flashId, ok);
+  if (!ok && pendingId) {
+    const e = document.getElementById(pendingId);
+    if (e) { e.classList.remove('pending'); delete e.dataset.pendingVal; }
+  }
 }
 
 async function setSel(id, val, flashId) {
