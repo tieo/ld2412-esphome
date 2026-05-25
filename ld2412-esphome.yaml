@@ -17,9 +17,6 @@ network:
 
 logger:
 
-api:
-  reboot_timeout: 0s
-
 ota:
   - platform: esphome
 
@@ -42,67 +39,166 @@ binary_sensor:
   - platform: ld2412
     has_target:
       name: "Presence"
+      filters: []
     has_moving_target:
       name: "Moving Target"
+      filters: []
     has_still_target:
       name: "Still Target"
+      filters: []
 
 sensor:
   - platform: ld2412
     moving_distance:
       name: "Moving Distance"
+      filters:
+        - throttle_with_priority: 100ms
     still_distance:
       name: "Still Distance"
+      filters:
+        - throttle_with_priority: 100ms
     detection_distance:
       name: "Detection Distance"
+      filters:
+        - throttle_with_priority: 100ms
     moving_energy:
       name: "Moving Energy"
+      filters:
+        - throttle_with_priority: 100ms
     still_energy:
       name: "Still Energy"
+      filters:
+        - throttle_with_priority: 100ms
     light:
       name: "Light"
+      filters:
+        - throttle_with_priority: 100ms
     gate_0:
-      move_energy: { name: "Gate 0 Move Energy" }
-      still_energy: { name: "Gate 0 Still Energy" }
+      move_energy:
+        name: "Gate 0 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 0 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_1:
-      move_energy: { name: "Gate 1 Move Energy" }
-      still_energy: { name: "Gate 1 Still Energy" }
+      move_energy:
+        name: "Gate 1 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 1 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_2:
-      move_energy: { name: "Gate 2 Move Energy" }
-      still_energy: { name: "Gate 2 Still Energy" }
+      move_energy:
+        name: "Gate 2 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 2 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_3:
-      move_energy: { name: "Gate 3 Move Energy" }
-      still_energy: { name: "Gate 3 Still Energy" }
+      move_energy:
+        name: "Gate 3 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 3 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_4:
-      move_energy: { name: "Gate 4 Move Energy" }
-      still_energy: { name: "Gate 4 Still Energy" }
+      move_energy:
+        name: "Gate 4 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 4 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_5:
-      move_energy: { name: "Gate 5 Move Energy" }
-      still_energy: { name: "Gate 5 Still Energy" }
+      move_energy:
+        name: "Gate 5 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 5 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_6:
-      move_energy: { name: "Gate 6 Move Energy" }
-      still_energy: { name: "Gate 6 Still Energy" }
+      move_energy:
+        name: "Gate 6 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 6 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_7:
-      move_energy: { name: "Gate 7 Move Energy" }
-      still_energy: { name: "Gate 7 Still Energy" }
+      move_energy:
+        name: "Gate 7 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 7 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_8:
-      move_energy: { name: "Gate 8 Move Energy" }
-      still_energy: { name: "Gate 8 Still Energy" }
+      move_energy:
+        name: "Gate 8 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 8 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_9:
-      move_energy: { name: "Gate 9 Move Energy" }
-      still_energy: { name: "Gate 9 Still Energy" }
+      move_energy:
+        name: "Gate 9 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 9 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_10:
-      move_energy: { name: "Gate 10 Move Energy" }
-      still_energy: { name: "Gate 10 Still Energy" }
+      move_energy:
+        name: "Gate 10 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 10 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_11:
-      move_energy: { name: "Gate 11 Move Energy" }
-      still_energy: { name: "Gate 11 Still Energy" }
+      move_energy:
+        name: "Gate 11 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 11 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_12:
-      move_energy: { name: "Gate 12 Move Energy" }
-      still_energy: { name: "Gate 12 Still Energy" }
+      move_energy:
+        name: "Gate 12 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 12 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
     gate_13:
-      move_energy: { name: "Gate 13 Move Energy" }
-      still_energy: { name: "Gate 13 Still Energy" }
+      move_energy:
+        name: "Gate 13 Move Energy"
+        filters:
+          - throttle_with_priority: 500ms
+      still_energy:
+        name: "Gate 13 Still Energy"
+        filters:
+          - throttle_with_priority: 500ms
 
 number:
   - platform: ld2412
@@ -163,6 +259,8 @@ select:
       name: "OUT Pin Level"
     distance_resolution:
       name: "Distance Resolution"
+    light_function:
+      name: "Light Function"
 
 switch:
   - platform: ld2412
@@ -173,3 +271,7 @@ button:
   - platform: ld2412
     factory_reset:
       name: "Factory Reset"
+    query_params:
+      name: "Query Params"
+    restart:
+      name: "Restart Sensor"
