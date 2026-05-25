@@ -12,6 +12,9 @@ wifi:
   use_address: esp.local
   reboot_timeout: 0s
 
+network:
+  enable_high_performance: false
+
 logger:
 
 api:
