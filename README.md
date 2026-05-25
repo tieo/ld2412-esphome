@@ -4,8 +4,8 @@ ESPHome config for the LD2412 mmWave presence sensor + a standalone radar dashbo
 
 ## Files
 
-- `ld2412-esphome.yaml` — ESPHome config, exposes all 14 gates with energy + thresholds over API/web
-- `ld2412-radar.html` — open in browser, connect to the ESP's IP, see live radar + tune thresholds
+- `ld2412-esphome.yaml` - ESPHome config, exposes all 14 gates with energy + thresholds over API/web
+- `ld2412-radar.html` - open in browser, connect to the ESP's IP, see live radar + tune thresholds
 
 ## Setup
 
@@ -15,7 +15,7 @@ Copy `secrets.yaml.example` (or just add your own) with `wifi_ssid` and `wifi_pa
 esphome run ld2412-esphome.yaml --device /dev/ttyUSB0
 ```
 
-After that OTA works. Engineering mode is required for gate energy data — the dashboard enables it automatically.
+After that OTA works. Engineering mode is required for gate energy data - the dashboard enables it automatically.
 
 ## Notes
 
