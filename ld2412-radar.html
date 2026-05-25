@@ -188,16 +188,17 @@ select.ctrl-sel.pending { border-color: #c88000; color: #c88000; }
         <div class="gctrl-lbl">Distance Resolution</div>
         <select class="ctrl-sel" id="c-resolution" onchange="setSel('Distance Resolution',this.value,'c-resolution')">
           <option value="" disabled selected>—</option>
-          <option value="0.75m">0.75m</option>
           <option value="0.2m">0.2m</option>
+          <option value="0.5m">0.5m</option>
+          <option value="0.75m">0.75m</option>
         </select>
       </div>
       <div>
         <div class="gctrl-lbl">OUT Pin Level</div>
         <select class="ctrl-sel" id="c-outpin" onchange="setSel('OUT Pin Level',this.value,'c-outpin')">
           <option value="" disabled selected>—</option>
-          <option value="Active High">Active High</option>
-          <option value="Active Low">Active Low</option>
+          <option value="high">Active High</option>
+          <option value="low">Active Low</option>
         </select>
       </div>
       <div>
