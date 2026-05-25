@@ -241,7 +241,7 @@ let moveThresh  = new Array(GATES).fill(50);
 let stillThresh = new Array(GATES).fill(50);
 let detDist = 0, minGate = 0, maxGate = 13;
 let engOn = false, es, reconnectTimer, tickerInterval;
-let lastUpdate = null, connected = false;
+let lastUpdate = null, connected = false, connecting = false;
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -398,12 +398,15 @@ function arc(cx, cy, r1, r2, sa, ea) {
 
 // SSE
 function connect() {
+  if (connecting) return;
+  connecting = true; connected = false;
   const host = document.getElementById('ip').value.trim();
   if (es) { es.close(); es = null; }
+  clearTimeout(reconnectTimer);
   setConn(false, 'Connecting…');
   es = new EventSource('http://' + host + '/events');
   es.onopen = () => {
-    connected = true; lastUpdate = null;
+    connecting = false; connected = true;
     setConn(true, host);
     clearTimeout(reconnectTimer);
     clearInterval(tickerInterval);
@@ -411,16 +414,15 @@ function connect() {
     setTimeout(ensureEngMode, 500);
   };
   es.onerror = () => {
-    connected = false;
-    setConn(false, 'Reconnecting in 5s…');
-    document.getElementById('age-badge').className = 'age-badge';
+    connecting = false; connected = false;
+    setConn(false, 'Reconnecting…');
     document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
     es.close(); es = null;
     reconnectTimer = setTimeout(connect, 5000);
   };
   es.addEventListener('state', e => { try { handle(JSON.parse(e.data)); } catch(_) {} });
 }
-function reconnect() { connect(); }
+function reconnect() { connecting = false; connect(); }
 
 function markUpdate() {
   lastUpdate = Date.now();
@@ -431,7 +433,8 @@ function markUpdate() {
 
 function tick() {
   const badge = document.getElementById('age-badge');
-  if (!connected) { badge.className = 'age-badge'; return; }
+  if (connecting) { badge.className = 'age-badge stale'; badge.textContent = 'reconnecting…'; return; }
+  if (!connected) { badge.className = 'age-badge dead'; badge.textContent = 'disconnected'; return; }
   if (!lastUpdate) { badge.className = 'age-badge ok'; badge.textContent = 'waiting…'; return; }
   const age = (Date.now() - lastUpdate) / 1000;
   if (age < 2) {
@@ -440,13 +443,13 @@ function tick() {
   } else if (age < 8) {
     badge.className = 'age-badge ok'; badge.textContent = Math.round(age) + 's ago';
     document.querySelectorAll('.stat-val.stale').forEach(e => e.classList.remove('stale'));
-  } else if (age < 30) {
+  } else if (age < 20) {
     badge.className = 'age-badge stale'; badge.textContent = '⚠ ' + Math.round(age) + 's ago';
     document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
   } else {
-    badge.className = 'age-badge dead'; badge.textContent = '✕ stale ' + Math.round(age) + 's';
+    badge.className = 'age-badge dead'; badge.textContent = '✕ ' + Math.round(age) + 's ago';
     document.querySelectorAll('.stat-val.live').forEach(e => e.classList.add('stale'));
-    if (age > 15) connect();
+    connect();
   }
 }
 
