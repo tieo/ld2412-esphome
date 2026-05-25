@@ -586,13 +586,14 @@ async function setSel(id, val, rowId) {
   const el = rowId ? document.getElementById(rowId) : null;
   const oldVal = el ? (el.dataset.confirmed || '') : '';
   if (el) { el.classList.add('pending'); el.value = oldVal; }
-  if (engOn) { await postSwitch('Engineering Mode', 'turn_off'); await new Promise(r => setTimeout(r, 300)); }
+  const wasEngOn = engOn;
+  if (wasEngOn) { await postSwitch('Engineering Mode', 'turn_off'); await new Promise(r => setTimeout(r, 300)); }
   const ok = await fetch(`http://${ip()}/select/${encodeURIComponent(id)}/set`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `option=${encodeURIComponent(val)}`
   }).then(r => r.ok).catch(() => false);
-  if (engOn || ok) postSwitch('Engineering Mode', 'turn_on');
+  if (wasEngOn) postSwitch('Engineering Mode', 'turn_on');
   if (!ok) { if (el) el.classList.remove('pending'); if (rowId) flashErr(rowId); }
 }
 
